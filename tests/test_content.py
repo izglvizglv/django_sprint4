@@ -295,8 +295,7 @@ class TestContent:
         self.main_tester = main_content_tester
         self.category_tester = category_content_tester
 
-    def test_unpublished(
-            self, unpublished_posts_with_published_locations):
+    def test_unpublished(self, unpublished_posts_with_published_locations):
         profile_response = self.profile_tester.user_client_testget()
         context_posts = profile_response.context.get(
             self.profile_tester.items_key)

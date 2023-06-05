@@ -2,7 +2,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path
 
+
 from . import views
+from .views import e_handler500
 
 app_name = 'blog'
 
@@ -26,7 +28,7 @@ urlpatterns = [
     path('posts/<int:pk>/edit/',
          views.PostUpdateView.as_view(),
          name='edit_post'),
-    path('posts/delete/<int:pk>/',
+    path('posts/<int:pk>/delete/',
          views.PostDeleteView.as_view(),
          name='delete_post'),
 
@@ -40,3 +42,5 @@ urlpatterns = [
          views.delete_comment,
          name='delete_comment'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+handler500 = e_handler500

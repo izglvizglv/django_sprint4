@@ -6,24 +6,25 @@ from .models import Post, Comment
 User = get_user_model()
 
 
-class PostForm2(forms.ModelForm):
-    class Meta:
-        model = Post
-        fields = "__all__"
-        exclude = ['author']
-        widgets = {
-            'post': forms.DateInput(attrs={'type': 'date'}),
-        }
-
-
 class PostForm(forms.ModelForm):
 
     class Meta:
         model = Post
-        fields = ('title', 'text', 'pub_date', 'location', 'category')
+        fields = ('title', 'text', 'pub_date', 'image', 'location', 'category')
         widgets = {
             'post': forms.DateInput(attrs={'type': 'date'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super(PostForm, self).__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        obj = super(PostForm, self).save(commit=False)
+        obj.user = self.user
+        if commit:
+            obj.save()
+        return obj
 
 
 class CommentForm(forms.ModelForm):

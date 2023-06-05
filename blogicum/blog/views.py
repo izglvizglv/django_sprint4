@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render, reverse
 from django.views.generic import (
     CreateView, DeleteView, DetailView, ListView, UpdateView
@@ -13,7 +14,10 @@ from .models import Category, Comment, Post
 from django.contrib.auth import get_user_model
 from django.template.defaulttags import register
 from django.db.models import Count
-
+from django.template import RequestContext
+from django.http import HttpResponseForbidden
+from django.shortcuts import HttpResponseRedirect
+from django.contrib.auth.mixins import LoginRequiredMixin
 
 
 @register.filter
@@ -28,10 +32,15 @@ class PostListView(ListView):
     def get_context_data(self, **kwargs):
         query = Post.objects.filter(
             pub_date__lte=timezone.now(),
-            is_published=True)
+            is_published=True,
+            category__is_published=True,).order_by("-pub_date")
         if self.request.user.is_authenticated:
             query = query | Post.objects.all().filter(
-                author_id=self.request.user.pk)
+                author_id=self.request.user.pk,
+                is_published=True,
+                category__is_published=True,
+                pub_date__lte=timezone.now(),
+            ).order_by("-pub_date")
         query = query.annotate(comment_count=Count('comments'))
         paginator = Paginator(query, 10)
         page_number = self.request.GET.get('page')
@@ -45,57 +54,79 @@ class PostListView(ListView):
 class PostDetailView(DetailView):
     model = Post
     template_name = 'blog/detail.html'
-    form = CommentForm
-
-    def post(self, request, *args, **kwargs):
-        form = CommentForm(request.POST)
-        if form.is_valid():
-            post = self.get_object()
-            form.instance.author = request.user
-            form.instance.post = post
-            form.save()
-            return redirect(reverse('post', kwargs={
-                'pk': post.pk
-            }))
 
     def get_context_data(self, **kwargs):
-        post_comments_count = Comment.objects.all().filter(
-            post=self.object.id).count()
-        comments = Comment.objects.all().filter(post=self.object.id)
         context = super().get_context_data(**kwargs)
+        comments = self.object.comments.filter(post=self.object.id)
         context.update({
-            'form': self.form,
+            'form': CommentForm(),
             'comments': comments,
-            'post_comments_count': post_comments_count
         })
         return context
 
 
-class PostCreateView(CreateView):
-    model = Post
-    template_name = 'blog/create.html'
-    form_class = PostForm
+@login_required
+def add_comment(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    if CommentForm(request.POST).is_valid():
+        comment = CommentForm(request.POST).save(commit=False)
+        comment.author = request.user
+        comment.post = post
+        comment.save()
+    return redirect('blog:post_detail', pk=pk)
 
-    def post(self, request, *args, **kwargs):
-        self.post.author.id = self.request.user.pk
-        return super().post(request, *args, **kwargs)
+
+class PostCreateView(LoginRequiredMixin, CreateView):
+    model = Post
+    fields = ('title', 'text', 'pub_date', 'image', 'location', 'category')
+    template_name = 'blog/create.html'
+
+    def form_valid(self, form):
+        self.object = form.save(commit=False)
+        self.object.author = self.request.user
+        self.object.save()
+        return HttpResponseRedirect(self.get_success_url())
 
     def get_success_url(self):
         return reverse('blog:profile',
                        kwargs={'username': self.request.user.username})
 
 
-class PostUpdateView(UpdateView):
+class PostUpdateView(LoginRequiredMixin, UpdateView):
     model = Post
     form_class = PostForm
     template_name = 'blog/create.html'
 
+    def get(self, request, *args, **kwargs):
+        p = Post.objects.filter(pk=kwargs['pk'])
+        if len(p) == 0 or self.request.user.pk == p[0].author_id:
+            return super().get(request, *args, **kwargs)
+        return redirect('blog:post_detail', pk=kwargs['pk'])
 
-class PostDeleteView(DeleteView):
+    def post(self, request, *args, **kwargs):
+        p = Post.objects.filter(pk=kwargs['pk'])
+        if len(p) == 0 or self.request.user.pk == p[0].author_id:
+            return super().post(request, *args, **kwargs)
+        return redirect('blog:post_detail', pk=kwargs['pk'])
+
+
+class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
     template_name = 'blog/create.html'
     form_class = PostForm
     success_url = reverse_lazy('blog:index')
+
+    def get(self, request, *args, **kwargs):
+        p = Post.objects.filter(pk=kwargs['pk'])
+        if len(p) == 0 or self.request.user.pk == p[0].author_id:
+            return super().get(request, *args, **kwargs)
+        return redirect('blog:post_detail', pk=kwargs['pk'])
+
+    def post(self, request, *args, **kwargs):
+        p = Post.objects.filter(pk=kwargs['pk'])
+        if len(p) == 0 or self.request.user.pk == p[0].author_id:
+            return super().post(request, *args, **kwargs)
+        return redirect('blog:post_detail', pk=kwargs['pk'])
 
 
 def category_posts(request, category_slug):
@@ -106,10 +137,12 @@ def category_posts(request, category_slug):
     )
     posts_list = category.posts.all().filter(
         is_published=True,
-        pub_date__lt=timezone.now())
+        pub_date__lte=timezone.now()).order_by("-pub_date")
     if request.user.is_authenticated:
         posts_list = posts_list | category.posts.all().filter(
-            author_id=request.user.pk)
+            author_id=request.user.pk,
+            is_published=True,
+            pub_date__lte=timezone.now()).order_by("-pub_date")
     posts_list = posts_list.annotate(comment_count=Count('comments'))
     paginator = Paginator(posts_list, 10)
     page_number = request.GET.get('page')
@@ -118,19 +151,8 @@ def category_posts(request, category_slug):
         'category': category,
         'page_obj': page_obj,
         }
+
     return render(request, 'blog/category.html', context)
-
-
-@login_required
-def add_comment(request, pk):
-    post = get_object_or_404(Post, pk=pk)
-    form = CommentForm(request.POST)
-    if form.is_valid():
-        comment = form.save(commit=False)
-        comment.author = request.user
-        comment.post = post
-        comment.save()
-    return redirect('blog:post_detail', pk=pk)
 
 
 @login_required
@@ -138,6 +160,9 @@ def edit_comment(request, post_id, comment_id):
     comment = get_object_or_404(Comment, pk=comment_id)
     form = CommentForm(request.POST or None, instance=comment)
     context = {'form': form, 'comment': comment}
+    if request.user != comment.author:
+        return HttpResponseForbidden(
+            'Вам нельзя редактировать данный комментарий!')
     if form.is_valid():
         comment = form.save(commit=False)
         comment.save()
@@ -148,8 +173,9 @@ def edit_comment(request, post_id, comment_id):
 @login_required
 def delete_comment(request, post_id, comment_id):
     comment = get_object_or_404(Comment, pk=comment_id)
-    form = CommentForm(instance=comment)
-    context = {'form': form, 'comment': comment}
+    context = {'comment': comment}
+    if request.user != comment.author:
+        return HttpResponseForbidden('Вам нельзя удалять данный комментарий!')
     if request.method == 'POST':
         comment.delete()
         return redirect('blog:post_detail', pk=post_id)
@@ -167,10 +193,11 @@ class ShowsProfilePageView(DetailView):
 
     def get_context_data(self, **kwargs):
         posts = self.object.posts.select_related('author').filter(
-            pub_date__lte=timezone.now(), is_published=True)
+            pub_date__lte=timezone.now(), is_published=True
+            ).order_by("-pub_date")
         if self.request.user.is_authenticated:
             posts = posts | self.object.posts.filter(
-                author_id=self.request.user.pk)
+                author_id=self.request.user.pk).order_by("-pub_date")
         posts = posts.annotate(comment_count=Count('comments'))
         paginator = Paginator(posts, 10)
         request = self.request
@@ -178,6 +205,7 @@ class ShowsProfilePageView(DetailView):
         page_obj = paginator.get_page(page_number)
         context = super().get_context_data(**kwargs)
         context.update({'page_obj': page_obj})
+
         return context
 
 
@@ -188,3 +216,16 @@ class UserEditView(generic.UpdateView):
 
     def get_object(self):
         return self.request.user
+
+    def post(self, request, *args, **kwargs):
+        if self.request.user.is_anonymous:
+            return HttpResponse('Unauthorized', status=401)
+        self.object = self.get_object()
+        return super().post(request, *args, **kwargs)
+
+
+def e_handler500(request):
+    context = RequestContext(request)
+    response = render('pages/500.html', context)
+    response.status_code = 500
+    return response

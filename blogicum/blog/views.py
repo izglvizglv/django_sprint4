@@ -153,8 +153,7 @@ def category_posts(request, category_slug):
     page_obj = paginator.get_page(page_number)
     context = {
         'category': category,
-        'page_obj': page_obj,
-        }
+        'page_obj': page_obj}
 
     return render(request, 'blog/category.html', context)
 
@@ -196,9 +195,9 @@ class ShowsProfilePageView(DetailView):
     paginate_by = 10
 
     def get_context_data(self, **kwargs):
-        posts = self.object.posts.select_related('author').filter(
-            pub_date__lte=timezone.now(), is_published=True
-            ).order_by("-pub_date")
+        posts = self.object.posts.select_related(
+            'author').filter(pub_date__lte=timezone.now(), is_published=True
+                             ).order_by("-pub_date")
         if self.request.user.is_authenticated:
             posts = posts | self.object.posts.filter(
                 author_id=self.request.user.pk).order_by("-pub_date")

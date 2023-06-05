@@ -14,8 +14,7 @@ class Category(PublishedModel):
         max_length=64,
         unique=True,
         help_text='Идентификатор страницы для URL; '
-        'разрешены символы латиницы, цифры, дефис и подчёркивание.'
-        )
+        'разрешены символы латиницы, цифры, дефис и подчёркивание.')
 
     class Meta:
         verbose_name = 'категория'
@@ -51,14 +50,12 @@ class Post(PublishedModel):
         'Дата и время публикации',
         default=timezone.now,
         help_text='Если установить дату и время в будущем — '
-        'можно делать отложенные публикации.'
-        )
+        'можно делать отложенные публикации.')
     image = models.ImageField('Фото', upload_to='birthdays_images', blank=True)
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
-        verbose_name='Автор публикации',
-        )
+        verbose_name='Автор публикации')
     location = models.ForeignKey(
         Location,
         on_delete=models.SET_NULL,

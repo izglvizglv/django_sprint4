@@ -1,23 +1,27 @@
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render, reverse
-from django.views.generic import (
-    CreateView, DeleteView, DetailView, ListView, UpdateView
-)
-from django.urls import reverse_lazy
-from django.contrib.auth.decorators import login_required
-from django.views import generic
-from django.core.paginator import Paginator
-from .forms import ProfileForm
-from django.utils import timezone
-from .forms import PostForm, CommentForm
-from .models import Category, Comment, Post
 from django.contrib.auth import get_user_model
-from django.template.defaulttags import register
-from django.db.models import Count
-from django.template import RequestContext
-from django.http import HttpResponseForbidden
-from django.shortcuts import HttpResponseRedirect
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator
+from django.db.models import Count
+from django.http import HttpResponse, HttpResponseForbidden
+from django.shortcuts import (
+    get_object_or_404, HttpResponseRedirect, redirect, render, reverse)
+from django.template import RequestContext
+from django.template.defaulttags import register
+from django.urls import reverse_lazy
+from django.utils import timezone
+from django.views import generic
+from django.views.generic import (
+    CreateView, DeleteView, DetailView, ListView, UpdateView)
+
+from .forms import CommentForm, PostForm, ProfileForm
+from .models import Category, Comment, Post
+
+#   Импорты нужно отсортировать в правильном порядке с верху вниз:
+#   - импорты из стандартных библиотек
+#   - импорты сторонних библиотек (djando, rest_framework и т.д.)
+#   - импорты модулей этого проекта
+#   Между этими группами импортов должна быть пустая строка.
 
 
 @register.filter

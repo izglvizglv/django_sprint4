@@ -1,6 +1,6 @@
-from django.views.generic import TemplateView
 from django.shortcuts import render
 from django.template import RequestContext
+from django.views.generic import TemplateView
 
 
 class About(TemplateView):

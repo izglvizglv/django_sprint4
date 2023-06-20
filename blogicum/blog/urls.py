@@ -12,7 +12,7 @@ urlpatterns = [
     path('', views.PostListView.as_view(),
          name='index'),
     path('category/<str:category_slug>/',
-         views.category_posts,
+         views.CategoryListView.as_view(),
          name='category_posts'),
     path('profile/<username>/',
          views.ShowsProfilePageView.as_view(),
@@ -33,14 +33,15 @@ urlpatterns = [
          name='delete_post'),
 
     path('<int:pk>/comment/',
-         views.add_comment,
+         views.CommentAddView.as_view(),
          name='add_comment'),
     path('posts/<int:post_id>/edit_comment/<int:comment_id>/',
-         views.edit_comment,
+         views.CommentUpdateView.as_view(),
          name='edit_comment'),
     path('posts/<post_id>/delete_comment/<comment_id>/',
-         views.delete_comment,
+         views.CommentDeleteView.as_view(),
          name='delete_comment'),
+    # path('<int:pk>/', views.CommentUpdateView.as_view())
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 handler500 = e_handler500

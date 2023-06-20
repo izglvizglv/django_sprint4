@@ -1,18 +1,16 @@
 from django import forms
-from django.contrib.auth import get_user_model
 
 from .models import Comment, Post
 
-User = get_user_model()
-
 
 class PostForm(forms.ModelForm):
-
     class Meta:
         model = Post
         fields = ('title', 'text', 'pub_date', 'image', 'location', 'category')
         widgets = {
-            'post': forms.DateInput(attrs={'type': 'date'}),
+            'post': forms.DateTimeInput(attrs={
+                'type': 'datetime-local',
+                'format': '%m/%d/%y %H:%M'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -46,10 +44,3 @@ class CommentForm(forms.ModelForm):
             if commit:
                 obj.save()
             return obj
-
-
-class ProfileForm(forms.ModelForm):
-
-    class Meta:
-        model = User
-        fields = ('first_name', 'last_name', 'username', 'email')

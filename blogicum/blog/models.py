@@ -1,17 +1,21 @@
-from django.contrib.auth.models import User
 from django.db import models
 from django.urls import reverse
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
 from core.models import PublishedModel
+from .constants import MAX_LENGTH_256, MAX_LENGTH_64
+
+
+User = get_user_model()
 
 
 class Category(PublishedModel):
-    title = models.CharField('Заголовок', max_length=256)
+    title = models.CharField('Заголовок', max_length=MAX_LENGTH_256)
     description = models.TextField('Описание')
     slug = models.SlugField(
         'Идентификатор',
-        max_length=64,
+        max_length=MAX_LENGTH_64,
         unique=True,
         help_text='Идентификатор страницы для URL; '
         'разрешены символы латиницы, цифры, дефис и подчёркивание.')
@@ -25,7 +29,7 @@ class Category(PublishedModel):
 
 
 class Location(PublishedModel):
-    title = models.CharField('Название места', max_length=256)
+    title = models.CharField('Название места', max_length=MAX_LENGTH_256)
 
     class Meta:
         verbose_name = 'местоположение'
@@ -35,16 +39,8 @@ class Location(PublishedModel):
         return self.title[:20]
 
 
-class Profile(models.Model):
-    user = models.OneToOneField(User, null=True, on_delete=models.CASCADE)
-    bio = models.TextField(null=True, blank=True)
-
-    def __str__(self):
-        return str(self.user)
-
-
 class Post(PublishedModel):
-    title = models.CharField('Заголовок', max_length=256)
+    title = models.CharField('Заголовок', max_length=MAX_LENGTH_256)
     text = models.TextField('Текст')
     pub_date = models.DateTimeField(
         'Дата и время публикации',
@@ -70,7 +66,6 @@ class Post(PublishedModel):
     class Meta:
         verbose_name = 'публикация'
         verbose_name_plural = 'Публикации'
-        ordering = ('-pub_date', 'title')
         default_related_name = 'posts'
 
     def __str__(self):
@@ -100,4 +95,4 @@ class Comment(models.Model):
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
-        return self.author.username
+        return self.text[:20]

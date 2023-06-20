@@ -43,10 +43,12 @@ class PostDetailView(DetailView):
         p = Post.objects.filter(pk=kwargs['pk'])
         if self.request.user.id != p[0].author_id and p[0].is_published == 0:
             return redirect('blog:index')
-        if self.request.user.id != p[0].author_id and p[0].pub_date > timezone.now():
+        if (self.request.user.id != p[0].author_id
+                and p[0].pub_date > timezone.now()):
             return redirect('blog:index')
         else:
-            return super(PostDetailView, self).dispatch(request, *args, **kwargs)
+            return super(PostDetailView, self
+                         ).dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -99,7 +101,8 @@ class PostUpdateView(LoginRequiredMixin, UpdateView):
         if self.request.user.id != p[0].author_id:
             return redirect('blog:post_detail', self.kwargs['pk'])
         else:
-            return super(PostUpdateView, self).dispatch(request, *args, **kwargs)
+            return super(PostUpdateView, self
+                         ).dispatch(request, *args, **kwargs)
 
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
@@ -153,7 +156,9 @@ class CommentUpdateView(LoginRequiredMixin, UpdateView):
         return Comment.objects.get(pk=self.kwargs.get('comment_id'))
 
     def get_success_url(self):
-        return reverse('blog:post_detail', kwargs={'pk': self.kwargs['post_id']})
+        return reverse(
+            'blog:post_detail', kwargs={'pk': self.kwargs['post_id']}
+        )
 
     def dispatch(self, request, *args, **kwargs):
         p = Comment.objects.filter(pk=kwargs['comment_id'])
